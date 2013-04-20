@@ -94,7 +94,7 @@ def inner(blade1, blade2):
         scale = blade1.s * blade2.s * \
                 (-1)**((k1 * (k1 - 1)) / 2) * \
                 la.det(np.dot(blade1.blade.T, blade2.blade))
-        C = Blade(blade=1, s=scale)
+        C = Blade(1, s=scale)
         return C
     
 

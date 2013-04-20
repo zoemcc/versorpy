@@ -156,6 +156,13 @@ def testBladeInnerProductScale():
     print 'B inner B: ', bd.inner(B, B).s
     assert np.allclose(-4, bd.inner(B, B).s)
 
+    A = np.array([[-2, 0], [0, 1]])
+    print 'A.T A : ', np.dot(A.T, A)
+    
+    B = Blade(A)
+    print 'B inner B: ', bd.inner(B, B).s
+    assert np.allclose(-4, bd.inner(B, B).s)
+
 def testBladeInnerProductNonGradeMatch():
     B1 = Blade(np.eye(2))
     B2 = Blade(np.eye(1))
