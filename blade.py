@@ -22,7 +22,8 @@ class Blade(object):
             try:
                 shape = blade.shape
             except AttributeError: #try scalar?
-                blade = np.array([[blade]])
+                self.s = s * blade if s is not None else blade
+                blade = np.array([[]])
                 shape = blade.shape
             except:
                 raise
@@ -30,7 +31,9 @@ class Blade(object):
                 blade = np.array([blade]).T
             n, k = blade.shape
             self.k = k
-            if orthonormal:
+            if k == 0:
+                self.blade = blade
+            elif orthonormal:
                 self.s = s if s is not None else 1
                 self.blade = blade
             else:
@@ -43,20 +46,34 @@ class Blade(object):
                 if abs(R[k - 1, k - 1]) >= tol:
                    self.s = np.prod(np.diag(R))
                    if s is not None: self.s *= s
-                   self.blade = np.copy(Q)
+                   self.blade = Q
                    print 'self.s: ', self.s
                    print 'self.blade: ', self.blade
                 else:
                    self.s = 0
-        if np.allclose(self.s, 0): # reset to null blade
+        if np.allclose(self.s, 0): # reset to zero blade
             self.k = 0
             self.s = 0
-            self.blade = np.array([])
+            self.blade = np.array([[]])
 
 def outer(blade1, blade2):
     """ Calculates the blade outer product of blade1 ^ blade2 """
     # TODO: implement operator overloading for ^
-    pass
+    k, l = blade1.k, blade2.k
+    if k == 0:
+        return Blade(blade2.blade, orthonormal=True, s=blade1.s * blade2.s)
+    elif l == 0:
+        return Blade(blade1.blade, orthonormal=True, s=blade1.s * blade2.s)
+    elif k + l > blade1.blade.shape[0]:
+        return Blade()
+    else:
+        O = np.concatenate((blade1.blade, blade2.blade), axis=1)
+        U, s, Vh = la.svd(O)
+        # TODO: finish this case
+
+
+
+
 
 def reverse(blade):
     """ Calculates the reverse of k-blade blade  """
@@ -70,11 +87,15 @@ def involution(blade):
 
 def inner(blade1, blade2):
     """ Calculates the blade inner product of blade1 \circdot blade2 """
-    k = blade1.k
-    scale = (-1)**((k * (k - 1)) / 2) * \
-            la.det(np.dot(blade1.blade.T, blade2.blade))
-    C = Blade(blade=1, s=scale)
-    return C
+    k1, k2 = blade1.k, blade2.k
+    if k1 != k2:
+        return Blade()
+    else:
+        scale = blade1.s * blade2.s * \
+                (-1)**((k1 * (k1 - 1)) / 2) * \
+                la.det(np.dot(blade1.blade.T, blade2.blade))
+        C = Blade(blade=1, s=scale)
+        return C
     
 
 
