@@ -173,19 +173,23 @@ def testBladeInnerProductNonGradeMatch():
 def testBladeInverse():
     B1 = Blade(np.eye(2))
     print 'B1 inverse: ', bd.inverse(B1).s
-    assert np.allclose(B1.s, bd.inverse(B1).s)
+    assert np.allclose(-B1.s, bd.inverse(B1).s)
+    assert np.allclose(bd.inner(bd.inverse(B1), B1).s, 1.0)
 
     B2 = Blade(np.eye(1))
-    print 'B1 inverse: ', bd.inverse(B2).s
-    #assert np.allclose(bd.s, bd.inverse(B2).s)
+    print 'B2 inverse: ', bd.inverse(B2).s
+    assert np.allclose(B2.s, bd.inverse(B2).s)
+    assert np.allclose(bd.inner(bd.inverse(B2), B2).s, 1.0)
 
     B1 = Blade(np.eye(2), s=2.0)
-    print 'B2 inverse: ', bd.inverse(B1).s
-    #assert np.allclose(bd.s / 2.0, bd.inverse(B1).s)
+    print 'B1 inverse: ', bd.inverse(B1).s, '-B1.s / 2.0: ', -B1.s / 4.0
+    assert np.allclose(-B1.s / 4.0, bd.inverse(B1).s)
+    assert np.allclose(bd.inner(bd.inverse(B1), B1).s, 1.0)
 
     B2 = Blade(np.eye(1), s=2.0)
     print 'B2 inverse: ', bd.inverse(B2).s
-    #assert np.allclose(bd.s, bd.inverse(B2).s)
+    assert np.allclose(B2.s / 4.0, bd.inverse(B2).s)
+    assert np.allclose(bd.inner(bd.inverse(B2), B2).s, 1.0)
 
 def testBladeCopy():
     B1 = Blade(np.eye(2))
