@@ -97,6 +97,7 @@ def outer(blade1, blade2):
 def inverse(blade, inplace=True):
     """ Calculates the inverse of k-blade blade  """
     revBlade    = reverse(blade, inplace=inplace)
+#TODO: make sure that inplace doesn't mess things up here
     denominator = inner(revBlade, blade)
     revBlade.s /= (denominator.s + np.finfo(np.double).eps)
     return revBlade
