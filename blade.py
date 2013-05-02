@@ -50,12 +50,21 @@ class Blade(object):
                 shape = blade.shape
             n, k = shape
             self.n, self.k = n, k
-            if k == 0:
+            if k == 0: # scalar
                 self.blade = blade
-            elif orthonormal:
+            elif n < k: # too many columns, can't be a k-dim subspace of R^n
+                self.s = 0
+            elif orthonormal: # no qr/rescaling required
                 self.s = s if s is not None else 1
                 self.blade = blade
-            else:
+            elif k == 1: # just a vector
+                mag = la.norm(blade)
+                if abs(mag) >= tol:
+                    self.s = s * mag if s is not None else mag
+                    self.blade = blade / mag
+                else:
+                    self.s = 0
+            else: # full blade case
                 # QR factorization
                 Q, R, P = la.qr(blade, mode='economic', pivoting=True)
                 print Q, R, P
@@ -76,23 +85,32 @@ class Blade(object):
             self.s = 0
             self.blade = np.array([[]])
 
-def outer(blade1, blade2):
+def outer(blade1, blade2, tol=1e-10):
     """ Calculates the blade outer product of blade1 ^ blade2 """
     # TODO: implement operator overloading for ^
+    print 'blade1: ', blade1.blade
+    print 'blade2: ', blade2.blade
     k, l = blade1.k, blade2.k
-    if k == 0:
+    if k == 0 and l == 0: # scalar/scalar
+        return Blade(1, s = blade1.s * blade2.s)
+    elif k == 0: # scalar/blade
         return Blade(blade2.blade, orthonormal=True, s=blade1.s * blade2.s)
-    elif l == 0:
+    elif l == 0: # blade/scalar
         return Blade(blade1.blade, orthonormal=True, s=blade1.s * blade2.s)
-    elif k + l > blade1.blade.shape[0]:
+    elif k + l > blade1.blade.shape[0]: # too many factors
         return Blade()
-    else:
+    else: # full calculation
         O = np.concatenate((blade1.blade, blade2.blade), axis=1)
         U, s, Vh = la.svd(O)
-        # TODO: finish this case
-
-
-
+        if abs(s[k + l - 1]) < tol:
+            return Blade()
+        else:
+            matrixSpan = U[:, :k + l]
+            scale = blade1.s * blade2.s * la.det(np.dot(O.T, matrixSpan))
+            print 'Span: ', matrixSpan
+            print 'O: ', O
+            print 'scale: ', scale
+            return Blade(blade=matrixSpan, orthonormal=True, s=scale)
 
 def inverse(blade):
     """ Calculates the inverse of k-blade blade  """
@@ -176,6 +194,9 @@ def inner(blade1, blade2):
                 la.det(np.dot(blade1.blade.T, blade2.blade))
         C = Blade(1, s=scale)
         return C
+
+def pseudoScalar(n):
+    return Blade(blade=np.eye(n, n))
     
 
 
