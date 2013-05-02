@@ -139,6 +139,11 @@ def testBladeInitOneIndexVector():
 
 def testBladeReverse():
     # sign
+    B = Blade(1)
+    assert np.allclose(B.s, (-1)**(B.k * (B.k - 1) / 2) * bd.reverse(B).s)
+    assert np.allclose(B.s, (-1)**(B.k * (B.k - 1) / 2) * bd.reverseScaling(B))
+    assert B.k == 0
+
     for i in range(1, 5):
         B = Blade(np.eye(i))
         assert np.allclose(B.s, (-1)**(B.k * (B.k - 1) / 2) * bd.reverse(B).s)
@@ -148,10 +153,16 @@ def testBladeReverse():
 
 def testBladeInvolutio():
     # sign
+    B = Blade(1)
+    assert np.allclose(B.s, (-1)**B.k * bd.involution(B).s)
+    assert np.allclose(B.s, (-1)**B.k * bd.involutionScaling(B))
+    assert B.k == 0
+
     for i in range(1, 5):
         B = Blade(np.eye(i))
         assert np.allclose(B.s, (-1)**B.k * bd.involution(B).s)
         assert np.allclose(B.s, (-1)**B.k * bd.involutionScaling(B))
+        assert B.k == i
 
 def testBladeInnerSign():
     # sign
@@ -193,6 +204,22 @@ def testBladeInnerCommutativity():
         assert np.allclose(firstOrdering.s, secondOrdering.s), (firstOrdering.s, secondOrdering.s)
 
 def testBladeInverse():
+    B = Blade(2)
+    inv = bd.inverse(B)
+    assert np.allclose(B.s * inv.s, 1.0), inv.s
+
+    B = Blade(-2)
+    inv = bd.inverse(B)
+    assert np.allclose(B.s * inv.s, 1.0), inv.s
+
+    B = Blade(0)
+    try:
+        inv = bd.inverse(B)
+    except AttributeError as err:
+        assert err[0] == 'Not invertible'
+    except:
+        assert False, err
+
     B1 = Blade(np.eye(2))
     print 'B1 inverse: ', bd.inverse(B1).s
     assert np.allclose(-B1.s, bd.inverse(B1).s)
@@ -269,7 +296,7 @@ def testBladeOuterScalar():
 
 
 def testBladeOuterScaleMultplicative():
-    # scale (just multiplicative scaling)
+    # multiplicative scaling
     B1 = Blade(np.array([2, 0]))
     B2 = Blade(np.array([0, 1]))
     result1 = bd.outer(B1, B2)
@@ -292,7 +319,7 @@ def testBladeOuterScaleMultplicative():
     assert np.allclose(bd.inner(result1, result2).s, 4), bd.inner(result1, result2).s
 
 def testBladeOuterScaleParallelopiped():
-    # scale (outer(B1, B2).s == 'area spanned by parallelopiped between B1, B2')
+    # test outer(B1, B2).s == 'area spanned by parallelopiped between B1, B2'
     B1 = Blade(np.array([1, 0]))
     B2 = Blade(np.array([1, 1])) # should have same area as [0, 1] when outered with B1
     result1 = bd.outer(B1, B2)
@@ -303,16 +330,16 @@ def testBladeOuterScaleParallelopiped():
     assert np.allclose(np.eye(2), np.dot(result1.blade.T, result1.blade))
     assert np.allclose(bd.inner(result1, result1).s, -1), bd.inner(result1, result1).s
 
-    result2 = bd.outer(B2, B1)
-    print 'B2 outer B1 s: ', result2.s
-    print 'B2 outer B1 blade: ', result2.blade
-    assert la.det(result2.blade) < 0, la.det(result2.blade)
+    B1 = Blade(np.array([1, 0]), s=2.0)
+    B2 = Blade(np.array([1, 1]), s=3.0) 
+    result2 = bd.outer(B1, B2)
+    print 'B1 outer B2 s: ', result2.s
+    print 'B1 outer B2 blade: ', result2.blade
+    assert la.det(result2.blade) > 0, la.det(result2.blade)
     assert result2.blade.shape == (2, 2), result2.blade.shape
     assert np.allclose(np.eye(2), np.dot(result2.blade.T, result2.blade))
-    assert np.allclose(bd.inner(result2, result2).s, -1), bd.inner(result2, result2).s
-    
-    # result1 == inverse(result2)
-    assert np.allclose(bd.inner(result1, result2).s, 1), bd.inner(result1, result2).s
+    assert np.allclose(bd.inner(result2, result2).s, -36), bd.inner(result2, result2).s
+
 
 def testBladeOuterSameSubspace():
     B1 = Blade(np.eye(2))
@@ -326,6 +353,15 @@ def testBladeOuterSameSubspace():
     result = bd.outer(B1, B2)
     print 'B1 outer B2: ', result.s
     assert np.allclose(0, result.s)
+
+
+def testBladeDualEuclidean():
+    A = Blade(np.array([1, 0]))
+    D = bd.dual(A)
+
+    # defining equation
+    result = bd.outer(bd.inverse(A), D)
+    assert np.allclose(bd.inner(result, bd.pseudoScalar).s, 1.0), (result.blade, result.s)
 
 
 

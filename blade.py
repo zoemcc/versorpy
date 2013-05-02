@@ -39,6 +39,8 @@ class Blade(object):
                 shape = blade.shape
                 if copy:
                     blade = np.copy(blade)
+                if shape == (1, 0):
+                    self.s = s if s is not None else 1
             except AttributeError: #try scalar?
                 self.s = s * blade if s is not None else blade
                 blade = np.array([[]])
@@ -114,15 +116,22 @@ def outer(blade1, blade2, tol=1e-10):
 
 def inverse(blade):
     """ Calculates the inverse of k-blade blade  """
-#TODO: make inplace work here as an argument
-    revBlade    = reverse(blade, inplace=False)
-#TODO: make sure that inplace doesn't mess things up here
-    denominator = inner(revBlade, blade)
-    revBlade.s /= (denominator.s + np.finfo(np.double).eps)
-    return revBlade
+#TODO: make inplace work here as an argument and doesn't mess things up
+#TODO: make this work for arbitrary metric
+    if blade.k == 0:
+        if blade.s == 0:
+            raise AttributeError, ('Not invertible', blade)
+        else:
+            return Blade(1, s=1.0 / blade.s)
+    else:
+        revBlade    = reverse(blade, inplace=False)
+        denominator = inner(revBlade, blade)
+        revBlade.s /= (denominator.s + np.finfo(np.double).eps)
+        return revBlade
 
 def inverseScaling(blade, inplace=False):
     """ Calculates the inverse of k-blade blade and returns just scaling """
+#TODO: currently broken
     revBlade    = reverse(blade)
     denominator = inner(revBlade, blade)
     revBlade.s /= (denominator.s + np.finfo(np.double).eps)
@@ -141,8 +150,8 @@ def reverse(blade, inplace=True):
     """
     if not inplace:
         blade = copy(blade)
-    even = ((blade.k * (blade.k - 1)) / 2) % 2
-    if even:
+    odd = ((blade.k * (blade.k - 1)) / 2) % 2
+    if odd:
         blade.s *= -1
     return blade
 
@@ -150,9 +159,9 @@ def reverseScaling(blade, inplace=False):
     """
     Calculates the grade involution of k-blade blade and returns just scaling.
     """
-    even = ((blade.k * (blade.k - 1)) / 2) % 2
+    odd = ((blade.k * (blade.k - 1)) / 2) % 2
     s = blade.s
-    if even:
+    if odd:
         s *= -1
         if inplace:
             blade.s *= -1
@@ -165,8 +174,8 @@ def involution(blade, inplace=True):
     """
     if not inplace:
         blade = copy(blade)
-    even = blade.k % 2
-    if even:
+    odd = blade.k % 2
+    if odd:
         blade.s *= -1
     return blade
 
@@ -174,9 +183,9 @@ def involutionScaling(blade, inplace=False):
     """
     Calculates the grade involution of k-blade blade and returns just scaling.
     """
-    even = blade.k % 2
+    odd = blade.k % 2
     s = blade.s
-    if even:
+    if odd:
         s *= -1
         if inplace:
             blade.s *= -1
@@ -200,6 +209,15 @@ def pseudoScalar(n):
     
 
 
+def dual(blade, metric=None):
+    """ Calculates the dual of blade with respect to the metric matrix metric """
+    k = blade.k
+    if k == 0:
+        pass
+
+
+        
+
 
 
     
@@ -214,4 +232,3 @@ def pseudoScalar(n):
 
 
 
-    
