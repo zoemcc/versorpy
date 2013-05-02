@@ -129,6 +129,7 @@ def testBladeReverse():
     for i in range(1, 5):
         B = Blade(np.eye(i))
         assert np.allclose(B.s, (-1)**(B.k * (B.k - 1) / 2) * bd.reverse(B).s)
+        assert np.allclose(B.s, (-1)**(B.k * (B.k - 1) / 2) * bd.reverseScaling(B))
         assert B.k == i
 
 
@@ -137,15 +138,15 @@ def testBladeInvolutio():
     for i in range(1, 5):
         B = Blade(np.eye(i))
         assert np.allclose(B.s, (-1)**B.k * bd.involution(B).s)
-        assert B.k == i
+        assert np.allclose(B.s, (-1)**B.k * bd.involutionScaling(B))
 
 def testBladeInnerProductSign():
     # sign
     for i in range(1, 5):
         B = Blade(np.eye(i, i))
         print 'B inner B: ', bd.inner(B, B).s
-        assert np.allclose((-1)**((i * (i - 1)) / 2), bd.inner(B, B).s)
-        assert B.k == i
+        assert np.allclose((-1)**((i * (i - 1)) / 2), bd.inner(B, B).s), 'value'
+        assert bd.inner(B, B).blade.shape == (1, 0), 'shape'
 
 def testBladeInnerProductScale():
     # scale
@@ -168,6 +169,37 @@ def testBladeInnerProductNonGradeMatch():
     B2 = Blade(np.eye(1))
     print 'B inner B: ', bd.inner(B1, B2).s
     assert np.allclose(0, bd.inner(B1, B2).s)
+
+def testBladeInverse():
+    B1 = Blade(np.eye(2))
+    print 'B1 inverse: ', bd.inverse(B1).s
+    assert np.allclose(B1.s, bd.inverse(B1).s)
+
+    B2 = Blade(np.eye(1))
+    print 'B1 inverse: ', bd.inverse(B2).s
+    #assert np.allclose(bd.s, bd.inverse(B2).s)
+
+    B1 = Blade(np.eye(2), s=2.0)
+    print 'B2 inverse: ', bd.inverse(B1).s
+    #assert np.allclose(bd.s / 2.0, bd.inverse(B1).s)
+
+    B2 = Blade(np.eye(1), s=2.0)
+    print 'B2 inverse: ', bd.inverse(B2).s
+    #assert np.allclose(bd.s, bd.inverse(B2).s)
+
+def testBladeCopy():
+    B1 = Blade(np.eye(2))
+    B2 = bd.copy(B1)
+    assert np.allclose(B1.blade, B2.blade)
+    assert np.allclose(B1.s, B2.s)
+
+    B1.blade[1, 1] = 2
+    assert not np.allclose(B1.blade, B2.blade)
+
+
+
+
+
 
 
 
