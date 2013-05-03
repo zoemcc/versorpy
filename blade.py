@@ -232,12 +232,17 @@ def dual(blade, n=None, metric=None):
             scale = blade.s * la.det(blade.blade)
             retBlade = Blade(1, s=scale)
         else:
-            Q, R = la.qr(blade.blade, mode='full')
+            if metric is None:
+                transformedBlade = blade.blade
+            else:
+                transformedBlade = np.dot(metric, blade.blade)
+            Q, R = la.qr(transformedBlade, mode='full')
             D = Q[:, k:] # take the orthogonal complement to A
-            # typo in DFPhD -- should be [A, D], not [D, A] as listed
-            O = np.concatenate((blade.blade, D), axis=1) 
+            # typo in DFPhD -- should be [MA, D], not [D, MA] as listed
+            O = np.concatenate((transformedBlade, D), axis=1) 
             odd = ((k * (k - 1) + n * (n - 1)) / 2) % 2
             scale = blade.s * (-1)**odd * la.det(O)
             retBlade = Blade(D, s=scale, orthonormal=True)
         return retBlade
+
 

@@ -395,9 +395,9 @@ def testBladeDualEuclideanRegression():
         for k in range(0, n + 1):
             if k == 0:
                 blade = Blade(1, s=float(rn.rand(1)[0]))
-                print 'blade n, k: ', blade.n, blade.k
             else:
                 blade = Blade(rn.randn(n, k))
+            print 'blade n, k: ', blade.n, blade.k
             if np.allclose(blade.s, 0): # just skip this one for now... 
                 continue                # measure 0 event but could happen
             D = bd.dual(blade, n=n)
