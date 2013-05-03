@@ -3,6 +3,7 @@ import scipy.linalg as la
 import nose
 from blade import Blade
 import blade as bd
+import numpy.random as rn
 # -------- #  BEGIN Blade tests
 
 # -------- #  SUBBEGIN Blade.__init__() tests
@@ -216,7 +217,7 @@ def testBladeInverse():
     try:
         inv = bd.inverse(B)
     except AttributeError as err:
-        assert err[0] == 'Not invertible'
+        assert err[0] == 'Not invertible, s=0'
     except:
         assert False, err
 
@@ -356,12 +357,60 @@ def testBladeOuterSameSubspace():
 
 
 def testBladeDualEuclidean():
+    # s=0
+    B = Blade(0)
+    try:
+        D = bd.dual(B)
+    except AttributeError as err:
+        assert err[0] == 'Not dualizable, s=0'
+    except:
+        assert False, err
+
+    # scalar, expect a 2-blade
+    A = Blade(2)
+    D = bd.dual(A, n=2)
+    revPseudo = bd.outer(bd.inverse(A), D)
+    shouldBeOne = bd.inner(revPseudo, bd.pseudoScalar(2))
+    assert np.allclose(shouldBeOne.s, 1.0), (shouldBeOne.blade, shouldBeOne.s)
+
+    # 1-blade, expect 1-blade back
     A = Blade(np.array([1, 0]))
     D = bd.dual(A)
+    revPseudo = bd.outer(bd.inverse(A), D)
+    shouldBeOne = bd.inner(revPseudo, bd.pseudoScalar(2))
+    assert np.allclose(shouldBeOne.s, 1.0), (shouldBeOne.blade, shouldBeOne.s)
 
-    # defining equation
-    result = bd.outer(bd.inverse(A), D)
-    assert np.allclose(bd.inner(result, bd.pseudoScalar).s, 1.0), (result.blade, result.s)
+    # 2-blade, expect 0-blade back
+    A = Blade(np.eye(2))
+    D = bd.dual(A)
+    revPseudo = bd.outer(bd.inverse(A), D)
+    shouldBeOne = bd.inner(revPseudo, bd.pseudoScalar(2))
+    assert np.allclose(shouldBeOne.s, 1.0), (shouldBeOne.blade, shouldBeOne.s)
+
+
+def testBladeDualEuclideanRegression():
+    # regression test -- tests a bunch of functions and they all have to work 
+    # for many input dimensions for this to succeed fully
+    for n in range(1, 10):
+        for k in range(0, n + 1):
+            if k == 0:
+                blade = Blade(1, s=float(rn.rand(1)[0]))
+                print 'blade n, k: ', blade.n, blade.k
+            else:
+                blade = Blade(rn.randn(n, k))
+            if np.allclose(blade.s, 0): # just skip this one for now... 
+                continue                # measure 0 event but could happen
+            D = bd.dual(blade, n=n)
+            print 'D n, k: ', D.n, D.k
+            revPseudo = bd.outer(bd.inverse(blade), D)
+            print 'n, k: ', n, k
+            print 'revPseudo blade, s: ', revPseudo.blade, revPseudo.s
+            shouldBeOne = bd.inner(revPseudo, bd.pseudoScalar(n))
+            assert np.allclose(shouldBeOne.s, 1.0), (shouldBeOne.blade, shouldBeOne.s)
+
+
+
+
 
 
 

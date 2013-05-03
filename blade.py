@@ -56,7 +56,11 @@ class Blade(object):
                 self.blade = blade
             elif n < k: # too many columns, can't be a k-dim subspace of R^n
                 self.s = 0
-            elif orthonormal: # no qr/rescaling required
+            elif orthonormal: # no qr/rescaling required -- known to be ortho
+                self.s = s if s is not None else 1
+                self.blade = blade
+            elif np.allclose(np.dot(blade.T, blade), np.eye(k)):
+                # blade has been discovered to be orthonormal
                 self.s = s if s is not None else 1
                 self.blade = blade
             elif k == 1: # just a vector
@@ -82,7 +86,7 @@ class Blade(object):
                 else:
                    self.s = 0
         if np.allclose(self.s, 0): # reset to zero blade
-            self.n = 0
+            self.n = 1 # necessary for consistency with blade.shape == (1, 0)
             self.k = 0
             self.s = 0
             self.blade = np.array([[]])
@@ -118,20 +122,20 @@ def inverse(blade):
     """ Calculates the inverse of k-blade blade  """
 #TODO: make inplace work here as an argument and doesn't mess things up
 #TODO: make this work for arbitrary metric
-    if blade.k == 0:
-        if blade.s == 0:
-            raise AttributeError, ('Not invertible', blade)
-        else:
-            return Blade(1, s=1.0 / blade.s)
+    if blade.s == 0:
+        raise AttributeError, ('Not invertible, s=0', blade)
     else:
-        revBlade    = reverse(blade, inplace=False)
-        denominator = inner(revBlade, blade)
-        revBlade.s /= (denominator.s + np.finfo(np.double).eps)
-        return revBlade
+        if blade.k == 0:
+            return Blade(1, s=1.0 / blade.s)
+        else:
+            revBlade    = reverse(blade, inplace=False)
+            denominator = inner(revBlade, blade)
+            revBlade.s /= (denominator.s + np.finfo(np.double).eps)
+            return revBlade
 
 def inverseScaling(blade, inplace=False):
     """ Calculates the inverse of k-blade blade and returns just scaling """
-#TODO: currently broken
+#TODO: currently broken WARNING
     revBlade    = reverse(blade)
     denominator = inner(revBlade, blade)
     revBlade.s /= (denominator.s + np.finfo(np.double).eps)
@@ -151,8 +155,7 @@ def reverse(blade, inplace=True):
     if not inplace:
         blade = copy(blade)
     odd = ((blade.k * (blade.k - 1)) / 2) % 2
-    if odd:
-        blade.s *= -1
+    blade.s *= (-1)**odd
     return blade
 
 def reverseScaling(blade, inplace=False):
@@ -161,10 +164,9 @@ def reverseScaling(blade, inplace=False):
     """
     odd = ((blade.k * (blade.k - 1)) / 2) % 2
     s = blade.s
-    if odd:
-        s *= -1
-        if inplace:
-            blade.s *= -1
+    s *= (-1)**odd
+    if inplace:
+        blade.s *= (-1)**odd
     return s
 
 def involution(blade, inplace=True):
@@ -175,8 +177,7 @@ def involution(blade, inplace=True):
     if not inplace:
         blade = copy(blade)
     odd = blade.k % 2
-    if odd:
-        blade.s *= -1
+    blade.s *= (-1)**odd
     return blade
 
 def involutionScaling(blade, inplace=False):
@@ -185,10 +186,9 @@ def involutionScaling(blade, inplace=False):
     """
     odd = blade.k % 2
     s = blade.s
-    if odd:
-        s *= -1
-        if inplace:
-            blade.s *= -1
+    s *= (-1)**odd
+    if inplace:
+        blade.s *= (-1)**odd
     return s
 
 
@@ -198,37 +198,46 @@ def inner(blade1, blade2):
     if k1 != k2:
         return Blade()
     else:
-        scale = blade1.s * blade2.s * \
-                (-1)**((k1 * (k1 - 1)) / 2) * \
-                la.det(np.dot(blade1.blade.T, blade2.blade))
+        if k1 == 0:
+            scale = blade1.s * blade2.s * \
+                    (-1)**((k1 * (k1 - 1)) / 2)
+        else:
+            scale = blade1.s * blade2.s * \
+                    (-1)**((k1 * (k1 - 1)) / 2) * \
+                    la.det(np.dot(blade1.blade.T, blade2.blade))
         C = Blade(1, s=scale)
         return C
 
 def pseudoScalar(n):
+    """ Return the pseudoscalar of the space R^n """
     return Blade(blade=np.eye(n, n))
-    
 
+def pseudoScalarReverse(n):
+    """ Return the reverse of the pseudoscalar of the space R^n """
+    odd = ((n * (n - 1)) / 2) % 2
+    return Blade(blade=np.eye(n, n), s=(-1)**odd)
 
-def dual(blade, metric=None):
-    """ Calculates the dual of blade with respect to the metric matrix metric """
-    k = blade.k
-    if k == 0:
-        pass
-
-
-        
-
-
-
-    
-
-                
-
-
-
-
-
-
-
-
+def dual(blade, n=None, metric=None):
+    """ Calculates the dual of blade with respect to the metric matrix """
+    if blade.s == 0:
+        raise AttributeError, ('Not dualizable, s=0', blade)
+    else:
+        if n is None:
+            n = blade.n
+        k = blade.k
+        if k == 0: #return an n-blade
+            retBlade = pseudoScalarReverse(n)
+            retBlade.s *= blade.s
+        elif k == n: # return a 0-blade (scalar)
+            scale = blade.s * la.det(blade.blade)
+            retBlade = Blade(1, s=scale)
+        else:
+            Q, R = la.qr(blade.blade, mode='full')
+            D = Q[:, k:] # take the orthogonal complement to A
+            # typo in DFPhD -- should be [A, D], not [D, A] as listed
+            O = np.concatenate((blade.blade, D), axis=1) 
+            odd = ((k * (k - 1) + n * (n - 1)) / 2) % 2
+            scale = blade.s * (-1)**odd * la.det(O)
+            retBlade = Blade(D, s=scale, orthonormal=True)
+        return retBlade
 
