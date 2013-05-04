@@ -2,6 +2,13 @@ import numpy as np
 import scipy.linalg as la
 from contracts import contract
 
+"""
+    A blade class and operations on blades in n-dimensional spaces.
+    This library is adapted from Daniel Fontijne's PhD thesis,
+    "Efficient Implementation of Geometric Algebra"
+    staff.science.uva.nl/~fontijne/phd.html
+"""
+
 
 class Blade(object):
     @contract
@@ -199,9 +206,11 @@ def inner(blade1, blade2):
         return Blade()
     else:
         if k1 == 0:
+            # needs to multiply by the blade scales.  DFPhD assumes unit blades.
             scale = blade1.s * blade2.s * \
                     (-1)**((k1 * (k1 - 1)) / 2)
         else:
+            # needs to multiply by the blade scales.  DFPhD assumes unit blades.
             scale = blade1.s * blade2.s * \
                     (-1)**((k1 * (k1 - 1)) / 2) * \
                     la.det(np.dot(blade1.blade.T, blade2.blade))
@@ -217,7 +226,36 @@ def pseudoScalarReverse(n):
     odd = ((n * (n - 1)) / 2) % 2
     return Blade(blade=np.eye(n, n), s=(-1)**odd)
 
-def dual(blade, n=None, metric=None):
+def dual(blade, n=None):
+    """ Calculates the dual of blade with respect to the metric matrix """
+    if blade.s == 0:
+        raise AttributeError, ('Not dualizable, s=0', blade)
+    else:
+        if n is None:
+            n = blade.n
+        k = blade.k
+        if k == 0: #return an n-blade
+            retBlade = pseudoScalarReverse(n)
+            retBlade.s *= blade.s
+        elif k == n: # return a 0-blade (scalar)
+            scale = blade.s * la.det(blade.blade)
+            retBlade = Blade(1, s=scale)
+        else:
+            #if metric is None:
+                #transformedBlade = blade.blade
+            #else:
+                #transformedBlade = np.dot(metric, blade.blade)
+            Q, R = la.qr(blade.blade, mode='full')
+            D = Q[:, k:] # take the orthogonal complement to A
+            # typo in DFPhD -- should be [A, D], not [D, A] as listed
+            O = np.concatenate(blade.blade, D, axis=1) 
+            odd = ((k * (k - 1) + n * (n - 1)) / 2) % 2
+            # needs to multiply by the blade scale.  DFPhD assumes unit blade.
+            scale = blade.s * (-1)**odd * la.det(O)
+            retBlade = Blade(D, s=scale, orthonormal=True)
+        return retBlade
+
+def dualNonEuc(blade, n=None, metric='conformal'):
     """ Calculates the dual of blade with respect to the metric matrix """
     if blade.s == 0:
         raise AttributeError, ('Not dualizable, s=0', blade)
