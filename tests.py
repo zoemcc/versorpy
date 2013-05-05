@@ -295,6 +295,15 @@ def testBladeOuterScalar():
     print 'B2 outer B2 s: ', result3.s
     assert np.allclose(result3.s, 4)
 
+    B1 = Blade(1, s=2)
+    B2 = Blade(1, s=-.5)
+
+    result1 = bd.outer(B1, B2)
+    print 'B1 outer B2 s: ', result1.s
+    assert np.allclose(-1, result1.s), 'value'
+    assert result1.blade.shape == (1, 0), 'shape'
+
+
 
 def testBladeOuterScaleMultplicative():
     # multiplicative scaling
@@ -408,6 +417,93 @@ def testBladeDualEuclideanRegression():
             shouldBeOne = bd.inner(revPseudo, bd.pseudoScalar(n))
             assert np.allclose(shouldBeOne.s, 1.0), (shouldBeOne.blade, shouldBeOne.s)
 
+
+def testBladeUnDualEuclidean():
+    # s=0
+    B = Blade(0)
+    try:
+        D = bd.undual(B)
+    except AttributeError as err:
+        assert err[0] == 'Not dualizable, s=0'
+    except:
+        assert False, err
+
+    # scalar, expect a 2-blade
+    A = Blade(2)
+    Aprime = bd.dual(bd.undual(A, n=2), n=2)
+    print 'A: ', A.blade, A.s
+    print 'APrimeInv: ', bd.inverse(Aprime).blade, bd.inverse(Aprime).s
+    shouldBeOne = bd.outer(A, bd.inverse(Aprime))
+    print 'shouldBeOne: ', shouldBeOne.blade, shouldBeOne.s
+    assert np.allclose(shouldBeOne.s, 1.0), (shouldBeOne.blade, shouldBeOne.s)
+
+    # 1-blade, expect 1-blade back
+    A = Blade(np.array([1, 0]))
+    Aprime = bd.undual(bd.dual(A, n=2), n=2)
+    shouldBeOne = bd.inner(A, bd.inverse(Aprime))
+    assert np.allclose(shouldBeOne.s, 1.0), (shouldBeOne.blade, shouldBeOne.s)
+
+    # 2-blade, expect 0-blade back
+    A = Blade(np.eye(2))
+    Aprime = bd.undual(bd.dual(A, n=2), n=2)
+    print 'A: ', A.blade, A.s
+    print 'APrimeInv: ', bd.inverse(Aprime).blade, bd.inverse(Aprime).s
+    shouldBeOne = bd.inner(A, bd.inverse(Aprime))
+    print 'shouldBeOne: ', shouldBeOne.blade, shouldBeOne.s
+    assert np.allclose(shouldBeOne.s, 1.0), (shouldBeOne.blade, shouldBeOne.s)
+
+
+def testBladeLeftContractBasic():
+    # basic usage
+    A = Blade(np.array([1, 0]))
+    B = Blade(np.array([[1, 0], [0, 1]]))
+    lc = bd.leftContract(A, B)
+    assert np.allclose(lc.s, 1.0), (lc.blade, lc.s)
+    assert (np.allclose(lc.blade, np.array([[0], [1]])) and \
+                   np.allclose(lc.s, 1)) or \
+           (np.allclose(lc.blade, np.array([[0], [-1]])) and \
+                   np.allclose(lc.s, -1)), (lc.blade, lc.s)
+
+def testBladeLeftContractOrthoProj():
+    # orthogonal projection
+    A = Blade(np.array([1, 1, 0]))
+    B = Blade(np.array([[2, 0], [0, 0], [0, 2]]))
+    Aproj = bd.leftContract(bd.leftContract(A, B), bd.inverse(B))
+    assert (np.allclose(Aproj.blade, np.array([[1], [0], [0]])) and \
+                   np.allclose(Aproj.s * la.norm(np.array([1, 1, 0])), A.s)) or \
+           (np.allclose(-Aproj.blade, np.array([[-1], [0], [0]])) and \
+                   np.allclose(-Aproj.s * la.norm(np.array([1, 1, 0])), A.s)) 
+
+def testBladeJoin():
+    # TODO: all of this
+    pass
+
+def testBladeMeet():
+    # TODO: all of this
+    pass
+
+def testBladeLinearTransformRankDeficient():
+    #rank deficient
+    B = Blade(np.eye(2))
+    T = np.array([[1, 0], [0, 0]])
+    result = bd.applyLinearTransform(T, B)
+    assert result.k == 0, (result.blade, result.s)
+
+def testBladeLinearTransformUnit():
+    # unit transform
+    B = Blade(np.eye(2), s=2)
+    T = np.array([[1, 0], [0, 1]])
+    result = bd.applyLinearTransform(T, B)
+    assert result.k == 2, (result.blade, result.s)
+    assert result.s == 2, (result.blade, result.s)
+
+def testBladeLinearTransformScale():
+    # scale
+    B = Blade(np.eye(2), s=2)
+    T = np.array([[2, 0], [0, .75]])
+    result = bd.applyLinearTransform(T, B)
+    assert result.k == 2, (result.blade, result.s)
+    assert result.s == 3, (result.blade, result.s)
 
 
 

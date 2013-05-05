@@ -7,6 +7,7 @@ from contracts import contract
     This library is adapted from Daniel Fontijne's PhD thesis,
     "Efficient Implementation of Geometric Algebra"
     staff.science.uva.nl/~fontijne/phd.html
+    referenced here as DFPhD
 """
 
 
@@ -149,8 +150,10 @@ def inverseScaling(blade, inplace=False):
     return revBlade.s
 
 
-def copy(blade):
-    return Blade(blade=blade.blade, orthonormal=True, s=blade.s, 
+def copy(blade, s=None):
+    """ s allows the scale to be set independently of the input blade """
+    scale = s if s is not None else blade.s
+    return Blade(blade=blade.blade, orthonormal=True, s=scale, 
                  gpu=blade.gpu, copy=True)
 
 
@@ -200,7 +203,10 @@ def involutionScaling(blade, inplace=False):
 
 
 def inner(blade1, blade2):
-    """ Calculates the blade inner product of blade1 \circdot blade2 """
+    """ 
+    Calculates the blade inner product of blade1 \circdot blade2.
+    Not yet implemented for non-euclidean inner products.
+    """
     k1, k2 = blade1.k, blade2.k
     if k1 != k2:
         return Blade()
@@ -227,7 +233,7 @@ def pseudoScalarReverse(n):
     return Blade(blade=np.eye(n, n), s=(-1)**odd)
 
 def dual(blade, n=None):
-    """ Calculates the dual of blade with respect to the metric matrix """
+    """ Calculates the dual of blade with respect to the euclidean metric """
     if blade.s == 0:
         raise AttributeError, ('Not dualizable, s=0', blade)
     else:
@@ -241,25 +247,41 @@ def dual(blade, n=None):
             scale = blade.s * la.det(blade.blade)
             retBlade = Blade(1, s=scale)
         else:
-            #if metric is None:
-                #transformedBlade = blade.blade
-            #else:
-                #transformedBlade = np.dot(metric, blade.blade)
             Q, R = la.qr(blade.blade, mode='full')
             D = Q[:, k:] # take the orthogonal complement to A
             # typo in DFPhD -- should be [A, D], not [D, A] as listed
-            O = np.concatenate(blade.blade, D, axis=1) 
+            O = np.concatenate((blade.blade, D), axis=1) 
             odd = ((k * (k - 1) + n * (n - 1)) / 2) % 2
             # needs to multiply by the blade scale.  DFPhD assumes unit blade.
             scale = blade.s * (-1)**odd * la.det(O)
             retBlade = Blade(D, s=scale, orthonormal=True)
         return retBlade
 
-def dualNonEuc(blade, n=None, metric='conformal'):
+def undual(blade, n=None):
+    """ Calculates the undual of blade with respect to the euclidean metric """
+    retBlade = dual(blade, n=n)
+    n = n if n is not None else blade.n
+    odd = (n * (n - 1) / 2) % 2
+    retBlade.s *= (-1)**odd
+    return retBlade
+
+
+def dualNonEuc(blade, n=None, metric=('conformal'), metMatrix=None):
     """ Calculates the dual of blade with respect to the metric matrix """
+    # WARNING: not yet finished. I'm putting off conformal transformations 
+    # in order to focus initially on rotations
     if blade.s == 0:
         raise AttributeError, ('Not dualizable, s=0', blade)
     else:
+        # non euclidean stuff
+        if metric[0] == 'conformal':
+            M = np.eye(n + 2)
+            M[0, 0] = 0
+            M[-1, -1] = 0
+            M[-1, 0] = -1
+            M[0, -1] = -1
+        else:
+            M = metMatrix
         if n is None:
             n = blade.n
         k = blade.k
@@ -270,10 +292,8 @@ def dualNonEuc(blade, n=None, metric='conformal'):
             scale = blade.s * la.det(blade.blade)
             retBlade = Blade(1, s=scale)
         else:
-            if metric is None:
-                transformedBlade = blade.blade
-            else:
-                transformedBlade = np.dot(metric, blade.blade)
+            # non euclidean stuff
+            transformedBlade = np.dot(M, blade.blade)
             Q, R = la.qr(transformedBlade, mode='full')
             D = Q[:, k:] # take the orthogonal complement to A
             # typo in DFPhD -- should be [MA, D], not [D, MA] as listed
@@ -282,5 +302,94 @@ def dualNonEuc(blade, n=None, metric='conformal'):
             scale = blade.s * (-1)**odd * la.det(O)
             retBlade = Blade(D, s=scale, orthonormal=True)
         return retBlade
+
+def leftContract(blade1, blade2):
+    """
+    Calculate the left contraction.
+    Projects blade1 onto blade2 and then 
+    then takes the orthogonal complement of the 
+    projected blade1 within blade2.
+    """
+    if blade1.k == blade2.k:
+        return inner(blade1, blade2)
+    else:
+        n = blade2.n
+        return undual(outer(blade1, dual(blade2, n=n)), n=n)
+
+def equality(blade1, blade2):
+    """
+    Calculates whether or not blade1 is the same blade as blade2,
+    including scale and orientation.
+    Not yet finished.
+    """
+    if blade1.k != blade2.k:
+        return False
+    elif blade1.k == 0:
+        return np.allclose(blade1.s, blade2.s)
+    elif join(blade1, blade2).k == blade1.k:
+        return np.allclose(inner(inverse(blade1), blade2).s, 1)
+    else:
+        return False
+
+def join(blade1, blade2, tol=1e-8):
+    """ 
+    Compute the join of blade1 and blade2 upto tolerance tol.
+    The scale is set to be 1 regardless of input scale since 
+    the join has no absolute magnitude.
+    """
+    if blade1.k == 0 and blade2.k == 0:
+        ret = copy(blade1, s=1)
+        return ret
+    if blade1.k == 0:
+        ret = copy(blade2, s=1)
+        return ret
+    elif blade2.k == 0:
+        ret = copy(blade1, s=1)
+        return ret
+    else:
+        combinedMat = np.concatenate((blade1.blade, blade2.blade), axis=1)
+        U, s, Vt = la.svd(combinedMat)
+        for (i, si) in enumerate(s):
+            if si <= tol:
+                break
+        joinMat = U[:, :i - 1]
+        return Blade(joinMat, s=1, orthonormal=True, copy=False)
+
+def meet(blade1, blade2, tol=1e-8):
+    """ 
+    Compute the meet of blade1 and blade2 upto tolerance tol.
+    The scale is set to be 1 regardless of input scale since 
+    the meet has no absolute magnitude.
+    """
+    ret = leftContract(leftContract(blade2, inverse(join(blade1, blade2, \
+                       tol=tol))), blade2)
+    ret.s = 1
+    return ret
+
+def addition(blade1, blade2):
+    """
+    Can only be performed if blade1.k == blade2.k
+    and meet(blade1, blade2).k >= k - 1
+    """
+    # TODO: all of this
+    pass
+
+def applyLinearTransform(transform, blade):
+    """
+    Applies the linear transformation transform to blade 
+    """
+    if blade.k == 0:
+        return Blade(1, s=blade.s * transform)
+    else:
+        return Blade(np.dot(transform, blade.blade), s=blade.s, copy=False)
+
+
+
+
+
+
+    
+
+
 
 
