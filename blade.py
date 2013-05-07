@@ -312,6 +312,8 @@ def leftContract(blade1, blade2):
     """
     if blade1.k == blade2.k:
         return inner(blade1, blade2)
+    elif blade1.k > blade2.k:
+        return Blade()
     else:
         n = blade2.n
         return undual(outer(blade1, dual(blade2, n=n)), n=n)
@@ -320,16 +322,32 @@ def equality(blade1, blade2):
     """
     Calculates whether or not blade1 is the same blade as blade2,
     including scale and orientation.
-    Not yet finished.
     """
     if blade1.k != blade2.k:
         return False
     elif blade1.k == 0:
+        print 'blade1.k = 0'
         return np.allclose(blade1.s, blade2.s)
     elif join(blade1, blade2).k == blade1.k:
+        print 'join = k'
         return np.allclose(inner(inverse(blade1), blade2).s, 1)
     else:
         return False
+
+def subSpaceEquality(blade1, blade2):
+    """
+    Calculates whether or not blade1 represents the same subspace as blade2,
+    not including scale and orientation.
+    """
+    if blade1.k != blade2.k:
+        return False
+    elif blade1.k == 0 or blade1.k == blade1.n:
+        return True
+    elif join(blade1, blade2).k == blade1.k:
+        return True
+    else:
+        return False
+
 
 def join(blade1, blade2, tol=1e-8):
     """ 
@@ -338,8 +356,7 @@ def join(blade1, blade2, tol=1e-8):
     the join has no absolute magnitude.
     """
     if blade1.k == 0 and blade2.k == 0:
-        ret = copy(blade1, s=1)
-        return ret
+        return Blade(1)
     if blade1.k == 0:
         ret = copy(blade2, s=1)
         return ret
@@ -351,8 +368,12 @@ def join(blade1, blade2, tol=1e-8):
         U, s, Vt = la.svd(combinedMat)
         for (i, si) in enumerate(s):
             if si <= tol:
+                j = i
                 break
-        joinMat = U[:, :i - 1]
+        else:
+            j = s.shape[0] + 1
+        joinMat = U[:, :j - 1]
+        print "joinMat: ", joinMat
         return Blade(joinMat, s=1, orthonormal=True, copy=False)
 
 def meet(blade1, blade2, tol=1e-8):
@@ -369,7 +390,8 @@ def meet(blade1, blade2, tol=1e-8):
 def addition(blade1, blade2):
     """
     Can only be performed if blade1.k == blade2.k
-    and meet(blade1, blade2).k >= k - 1
+    and meet(blade1, blade2).k >= k - 1.
+    Not yet implemented.
     """
     # TODO: all of this
     pass

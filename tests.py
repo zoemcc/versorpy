@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.linalg as la
+import math
 import nose
 from blade import Blade
 import blade as bd
@@ -474,13 +475,71 @@ def testBladeLeftContractOrthoProj():
            (np.allclose(-Aproj.blade, np.array([[-1], [0], [0]])) and \
                    np.allclose(-Aproj.s * la.norm(np.array([1, 1, 0])), A.s)) 
 
-def testBladeJoin():
-    # TODO: all of this
-    pass
+def testBladeJoinScalar():
+    # scalars
+    A = Blade(1, s=2)
+    B = Blade(1, s=4)
+    J = bd.join(A, B)
+    assert J.blade.shape == (1, 0)
+    assert J.s == 1
+
+    # scalar/blade
+    B = Blade(np.array([1, 0, 1]))
+    J = bd.join(A, B)
+    assert J.blade.shape == (3, 1)
+    assert J.s == 1
+
+    B = Blade(np.array([1, 0, 1]))
+    J = bd.join(B, A)
+    assert J.blade.shape == (3, 1)
+    assert J.s == 1
+
+def testBladeJoinBasic():
+    # easy
+
+    A = Blade(np.array([1, 0, 0]))
+    B = Blade(np.array([0, 1, 0]))
+    J = bd.join(A, B)
+    assert J.blade.shape == (3, 2)
+    assert J.s == 1
+
+
+
+
 
 def testBladeMeet():
     # TODO: all of this
     pass
+
+def testBladeEqualityAndSubEqualSelf():
+    # self equal
+    A = Blade(np.array([[1, 2], [2, 3], [0, 0]]))
+    B = Blade(np.array([[1, 2], [2, 3], [0, 0]]))
+    assert bd.subSpaceEquality(A, B)
+    assert bd.equality(A, B)
+
+
+    # self equal
+    A = Blade(np.array([[1, 2], [2, 3], [0, 0]]))
+    B = Blade(2 * np.array([[1, 2], [2, 3], [0, 0]]), s=.25)
+    assert bd.subSpaceEquality(A, B)
+    assert bd.equality(A, B)
+
+def testBladeEqualityRotation():
+    # 45-degree rotation in plane x-y
+    A = Blade(np.array([[1, 0], [0, 1], [0, 0]]))
+    B = Blade(np.array([[1, 1], [-1, 1], [0, 0]]), s=1.0 / math.sqrt(2))
+    assert bd.subSpaceEquality(A, B)
+    assert bd.equality(A, B)
+
+def testBladeEqualityNotSameSubspace():
+    # 45-degree rotation in plane x-y
+    A = Blade(np.array([[1, 0, 0], [0, 1, 0]]))
+    B = Blade(np.array([[1, 1, 1], [-1, 1, 1]]), s=1.0 / math.sqrt(3))
+    print 'join dim: ', bd.join(A, B).k
+    print 'equal: ', bd.equality(A, B)
+    assert not bd.equality(A, B)
+    assert bd.subSpaceEquality(A, B)
 
 def testBladeLinearTransformRankDeficient():
     #rank deficient
@@ -504,12 +563,6 @@ def testBladeLinearTransformScale():
     result = bd.applyLinearTransform(T, B)
     assert result.k == 2, (result.blade, result.s)
     assert result.s == 3, (result.blade, result.s)
-
-
-
-
-
-
 
 
 if __name__ == "__main__":
