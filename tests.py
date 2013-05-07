@@ -496,7 +496,6 @@ def testBladeJoinScalar():
 
 def testBladeJoinBasic():
     # two bases
-
     A = Blade(np.array([1, 0, 0]))
     B = Blade(np.array([0, 1, 0]))
     J = bd.join(A, B)
@@ -527,13 +526,28 @@ def testBladeJoinBasic():
     assert J3.blade.shape == (3, 3)
     assert J3.s == 1
 
-
-
-
-
 def testBladeMeet():
-    # TODO: all of this
-    pass
+    # two bases
+    A = Blade(np.array([1, 0, 0]))
+    B = Blade(np.array([0, 1, 0]))
+    M = bd.meet(A, B)
+    assert M.blade.shape == (1, 0), M.blade.shape
+    assert M.s == 1
+
+    # linearly dependent
+    A = Blade(np.array([1, 0, 0]))
+    B = Blade(np.array([1, 0, 0]))
+    M = bd.meet(A, B)
+    assert M.blade.shape == (3, 1)
+    assert M.s == 1
+
+    # share one factor
+    A = bd.outer(Blade(np.array([1, 0, 0])), Blade(np.array([0, 1, 0])))
+    B = Blade(np.array([1, 0, 0]))
+    M = bd.meet(A, B)
+    assert M.blade.shape == (3, 1), M.blade.shape
+    assert M.s == 1
+
 
 def testBladeEqualityAndSubEqualSelf():
     # self equal

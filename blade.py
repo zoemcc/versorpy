@@ -385,7 +385,7 @@ def meet(blade1, blade2, tol=1e-8):
     the meet has no absolute magnitude.
     """
     ret = leftContract(leftContract(blade2, inverse(join(blade1, blade2, \
-                       tol=tol))), blade2)
+                       tol=tol))), blade1)
     ret.s = 1
     return ret
 
