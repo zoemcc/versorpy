@@ -9,8 +9,6 @@ import numpy.random as rn
 
 # -------- #  SUBBEGIN Blade.__init__() tests
 
-def testBladeInit():
-    pass
 def testBladeInitNull():
     " Testing null blade "
     B = Blade()
@@ -570,10 +568,16 @@ def testBladeEqualityRotation():
     assert bd.subSpaceEquality(A, B)
     assert bd.equality(A, B)
 
+    # with scaling now
+    A = Blade(np.array([[1, 0], [0, 1], [0, 0]]))
+    B = Blade(np.array([[0, 1], [-1, 0], [0, 0]]), s=2)
+    assert bd.subSpaceEquality(A, B)
+    assert not bd.equality(A, B)
+
 def testBladeEqualityNotSameSubspace():
     # 45-degree rotation in plane x-y
     A = Blade(np.array([[1, 0], [0, 1], [1, 0]]))
-    B = Blade(np.array([[1, 1], [-1, 1], [0, 0]]), s=1.0 / math.sqrt(2))
+    B = Blade(np.array([[1, 1], [-1, 1], [0, 0]]))
     print 'join dim: ', bd.join(A, B).k
     print 'equal: ', bd.equality(A, B)
     assert not bd.subSpaceEquality(A, B)
