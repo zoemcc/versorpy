@@ -495,13 +495,37 @@ def testBladeJoinScalar():
     assert J.s == 1
 
 def testBladeJoinBasic():
-    # easy
+    # two bases
 
     A = Blade(np.array([1, 0, 0]))
     B = Blade(np.array([0, 1, 0]))
     J = bd.join(A, B)
     assert J.blade.shape == (3, 2)
     assert J.s == 1
+
+    # add a third
+    C = Blade(np.array([0, 0, 1]))
+    J2 = bd.join(J, C)
+    assert J2.blade.shape == (3, 3)
+    assert J2.s == 1
+
+    # linearly dependent
+    A = Blade(np.array([1, 0, 0]))
+    B = Blade(np.array([1, 0, 0]))
+    J = bd.join(A, B)
+    assert J.blade.shape == (3, 1)
+    assert J.s == 1
+
+    # linearly dependent
+    A = Blade(np.array([1, 0, 0]))
+    B = Blade(np.array([0, 1, 0]))
+    J = bd.join(A, B)
+    C = Blade(np.array([1, 1, 0]))
+    D = Blade(np.array([1, -1, 2]))
+    J2 = bd.join(C, D)
+    J3 = bd.join(J, J2)
+    assert J3.blade.shape == (3, 3)
+    assert J3.s == 1
 
 
 
@@ -526,20 +550,20 @@ def testBladeEqualityAndSubEqualSelf():
     assert bd.equality(A, B)
 
 def testBladeEqualityRotation():
-    # 45-degree rotation in plane x-y
+    # 90-degree rotation in plane x-y
     A = Blade(np.array([[1, 0], [0, 1], [0, 0]]))
-    B = Blade(np.array([[1, 1], [-1, 1], [0, 0]]), s=1.0 / math.sqrt(2))
+    B = Blade(np.array([[0, 1], [-1, 0], [0, 0]]))
     assert bd.subSpaceEquality(A, B)
     assert bd.equality(A, B)
 
 def testBladeEqualityNotSameSubspace():
     # 45-degree rotation in plane x-y
-    A = Blade(np.array([[1, 0, 0], [0, 1, 0]]))
-    B = Blade(np.array([[1, 1, 1], [-1, 1, 1]]), s=1.0 / math.sqrt(3))
+    A = Blade(np.array([[1, 0], [0, 1], [1, 0]]))
+    B = Blade(np.array([[1, 1], [-1, 1], [0, 0]]), s=1.0 / math.sqrt(2))
     print 'join dim: ', bd.join(A, B).k
     print 'equal: ', bd.equality(A, B)
+    assert not bd.subSpaceEquality(A, B)
     assert not bd.equality(A, B)
-    assert bd.subSpaceEquality(A, B)
 
 def testBladeLinearTransformRankDeficient():
     #rank deficient

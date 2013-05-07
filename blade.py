@@ -47,7 +47,10 @@ class Blade(object):
                 shape = blade.shape
                 if copy:
                     blade = np.copy(blade)
-                if shape == (1, 0):
+                if len(shape) == 1: #only one index, make column vector
+                    blade = np.array([blade]).T
+                    shape = blade.shape
+                elif shape[1] == 0:
                     self.s = s if s is not None else 1
             except AttributeError: #try scalar?
                 self.s = s * blade if s is not None else blade
@@ -55,9 +58,6 @@ class Blade(object):
                 shape = blade.shape
             except:
                 raise
-            if len(shape) == 1: #only one index, make column vector
-                blade = np.array([blade]).T
-                shape = blade.shape
             n, k = shape
             self.n, self.k = n, k
             if k == 0: # scalar
@@ -329,7 +329,7 @@ def equality(blade1, blade2):
         print 'blade1.k = 0'
         return np.allclose(blade1.s, blade2.s)
     elif join(blade1, blade2).k == blade1.k:
-        print 'join = k'
+        print 'join = k', blade1.k
         return np.allclose(inner(inverse(blade1), blade2).s, 1)
     else:
         return False
@@ -356,7 +356,7 @@ def join(blade1, blade2, tol=1e-8):
     the join has no absolute magnitude.
     """
     if blade1.k == 0 and blade2.k == 0:
-        return Blade(1)
+        return Blade(1, s=1)
     if blade1.k == 0:
         ret = copy(blade2, s=1)
         return ret
@@ -371,9 +371,11 @@ def join(blade1, blade2, tol=1e-8):
                 j = i
                 break
         else:
-            j = s.shape[0] + 1
-        joinMat = U[:, :j - 1]
+            j = s.shape[0]
+        joinMat = U[:, :j]
         print "joinMat: ", joinMat
+        print 's: ', s
+        print 'j: ', j
         return Blade(joinMat, s=1, orthonormal=True, copy=False)
 
 def meet(blade1, blade2, tol=1e-8):
