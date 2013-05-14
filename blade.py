@@ -31,7 +31,7 @@ class Blade(object):
                         involving the blade be performed on the gpu?
             :type gpu: bool
 
-            :param tol: Any number below tol is treated as 0 for rank
+            :param tol: Any number smaller than tol is treated as 0 for rank
                         calculations
             :type tol: float
 
