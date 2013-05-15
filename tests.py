@@ -5,9 +5,10 @@ import nose
 from blade import Blade
 import blade as bd
 import numpy.random as rn
-# -------- #  BEGIN Blade tests
 
-# -------- #  SUBBEGIN Blade.__init__() tests
+# -------- #  TEST Blade
+
+# -------- #  SUBTEST Blade.__init__()
 
 def testBladeInitNull():
     " Testing null blade "
@@ -110,7 +111,6 @@ def testBladeInitRankDeficient():
     assert np.allclose(B2.s, 0)
     assert B2.k == 0
 
-
 def testBladeInitColumnVector():
     # testing column vector
     c = np.array([[2], [0], [0]])
@@ -128,7 +128,6 @@ def testBladeInitColumnVector():
     assert np.allclose(B.s, 4.0)
     assert B.k == 1
 
-
 def testBladeInitOneIndexVector():
     # testing one-index (row-ish) vector
     c = np.array([2, 0, 0])
@@ -136,6 +135,8 @@ def testBladeInitOneIndexVector():
     assert np.allclose(np.dot(B.blade.T, B.blade), np.eye(1))
     assert np.allclose(B.s, 2.0)
     assert B.k == 1
+
+# -------- #  SUBTEST blade reverse 
 
 def testBladeReverse():
     # sign
@@ -150,6 +151,7 @@ def testBladeReverse():
         assert np.allclose(B.s, (-1)**(B.k * (B.k - 1) / 2) * bd.reverseScaling(B))
         assert B.k == i
 
+# -------- #  SUBTEST blade involution 
 
 def testBladeInvolutio():
     # sign
@@ -163,6 +165,8 @@ def testBladeInvolutio():
         assert np.allclose(B.s, (-1)**B.k * bd.involution(B).s)
         assert np.allclose(B.s, (-1)**B.k * bd.involutionScaling(B))
         assert B.k == i
+
+# -------- #  SUBTEST blade inner 
 
 def testBladeInnerSign():
     # sign
@@ -203,6 +207,8 @@ def testBladeInnerCommutativity():
         secondOrdering = bd.inner(B2, B1)
         assert np.allclose(firstOrdering.s, secondOrdering.s), (firstOrdering.s, secondOrdering.s)
 
+# -------- #  SUBTEST blade inverse
+
 def testBladeInverse():
     B = Blade(2)
     inv = bd.inverse(B)
@@ -240,6 +246,8 @@ def testBladeInverse():
     assert np.allclose(B2.s / 4.0, bd.inverse(B2).s)
     assert np.allclose(bd.inner(bd.inverse(B2), B2).s, 1.0)
 
+# -------- #  SUBTEST blade copy
+
 def testBladeCopy():
     B1 = Blade(np.eye(2))
     B2 = bd.copy(B1)
@@ -249,7 +257,7 @@ def testBladeCopy():
     B1.blade[1, 1] = 2
     assert not np.allclose(B1.blade, B2.blade)
 
-
+# -------- #  SUBTEST blade outer
 
 def testBladeOuterSign():
     # sign/antisymmetric
@@ -363,6 +371,7 @@ def testBladeOuterSameSubspace():
     print 'B1 outer B2: ', result.s
     assert np.allclose(0, result.s)
 
+# -------- #  SUBTEST blade dual 
 
 def testBladeDualEuclidean():
     # s=0
@@ -395,7 +404,6 @@ def testBladeDualEuclidean():
     shouldBeOne = bd.inner(revPseudo, bd.pseudoScalar(2))
     assert np.allclose(shouldBeOne.s, 1.0), (shouldBeOne.blade, shouldBeOne.s)
 
-
 def testBladeDualEuclideanRegression():
     # regression test -- tests a bunch of functions and they all have to work 
     # for many input dimensions for this to succeed fully
@@ -415,7 +423,6 @@ def testBladeDualEuclideanRegression():
             print 'revPseudo blade, s: ', revPseudo.blade, revPseudo.s
             shouldBeOne = bd.inner(revPseudo, bd.pseudoScalar(n))
             assert np.allclose(shouldBeOne.s, 1.0), (shouldBeOne.blade, shouldBeOne.s)
-
 
 def testBladeUnDualEuclidean():
     # s=0
@@ -451,6 +458,7 @@ def testBladeUnDualEuclidean():
     print 'shouldBeOne: ', shouldBeOne.blade, shouldBeOne.s
     assert np.allclose(shouldBeOne.s, 1.0), (shouldBeOne.blade, shouldBeOne.s)
 
+# -------- #  SUBTEST blade left contract 
 
 def testBladeLeftContractBasic():
     # basic usage
@@ -472,6 +480,8 @@ def testBladeLeftContractOrthoProj():
                    np.allclose(Aproj.s * la.norm(np.array([1, 1, 0])), A.s)) or \
            (np.allclose(-Aproj.blade, np.array([[-1], [0], [0]])) and \
                    np.allclose(-Aproj.s * la.norm(np.array([1, 1, 0])), A.s)) 
+
+# -------- #  SUBTEST blade join
 
 def testBladeJoinScalar():
     # scalars
@@ -524,6 +534,8 @@ def testBladeJoinBasic():
     assert J3.blade.shape == (3, 3)
     assert J3.s == 1
 
+# -------- #  SUBTEST blade meet 
+
 def testBladeMeet():
     # two bases
     A = Blade(np.array([1, 0, 0]))
@@ -546,6 +558,7 @@ def testBladeMeet():
     assert M.blade.shape == (3, 1), M.blade.shape
     assert M.s == 1
 
+# -------- #  SUBTEST blade equality
 
 def testBladeEqualityAndSubEqualSelf():
     # self equal
@@ -553,7 +566,6 @@ def testBladeEqualityAndSubEqualSelf():
     B = Blade(np.array([[1, 2], [2, 3], [0, 0]]))
     assert bd.subSpaceEquality(A, B)
     assert bd.equality(A, B)
-
 
     # self equal
     A = Blade(np.array([[1, 2], [2, 3], [0, 0]]))
@@ -583,6 +595,8 @@ def testBladeEqualityNotSameSubspace():
     assert not bd.subSpaceEquality(A, B)
     assert not bd.equality(A, B)
 
+# -------- #  SUBTEST blade linear transform
+
 def testBladeLinearTransformRankDeficient():
     #rank deficient
     B = Blade(np.eye(2))
@@ -606,6 +620,24 @@ def testBladeLinearTransformScale():
     assert result.k == 2, (result.blade, result.s)
     assert result.s == 3, (result.blade, result.s)
 
+# -------- #  TEST Versor
+
+# -------- #  SUBTEST Versor.__init__()
+
+def testVersorInitNull():
+    " Testing null versor "
+    B = Blade()
+    assert B.blade.shape == (1, 0)
+    assert np.allclose(B.s, 0)
+    assert B.k == 0
+
+    B = Blade(s=0)
+    assert B.blade.shape == (1, 0)
+    assert np.allclose(B.s, 0)
+    assert B.k == 0
+
+
+# -------- #  Main
 
 if __name__ == "__main__":
     nose.main()
