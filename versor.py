@@ -1,5 +1,5 @@
 import numpy as np
-from pycuda import gpuarray
+import scipy.linalg as la
 from contracts import contract
 
 """
@@ -13,7 +13,7 @@ from contracts import contract
 class Versor(object):
 
     def __init__(self, vectors=None, lazyInit=False, copy=True, factors=None,
-            orthoFac=None, W=None, Mf=None):
+            orthoFac=None, W=None, metricFactors=None):
         """
             Creates a new versor.  This is a list of vectors (the factors)
             that are all multiplied together  using the geometric product.
@@ -40,7 +40,7 @@ class Versor(object):
             from the left and from the right.
         
 
-            :param vectors: A list or matrix consisting of the factors of the versor.
+            :param vectors: A list consisting of the factors of the versor.
             :type vectors: array[NxK]|array[N]|None
 
             :param orthonormal: Is the input blade already orthonormal?
@@ -61,25 +61,51 @@ class Versor(object):
             :type copy: bool
         """
 
-        
         if vectors is None and factors is None:   # no input versor, init to empty
-            self.factors = np.array([[]])
-            self.orthoFac   = np.array([[]])
-            self.toOrthoBlade = np.array([[]])
-            self.metricFactors = np.array([[]])
-            self.
-            self.n = 1
-            self.k = 0
+            self.n, self.k = (1, 0)
+            self.factors = None
+            self.orthoFac = None
+            self.toOrthoBlade = None
+            self.metricFactors = None
+            self.dataBuilt = False
         else:
-            pass
+            if factors is not None: # get main data structure in matrix form
+                self.factors = np.copy(factors) if copy else factors
+            else:
+                # check for row vector and transpose into column if necessary
+                vectors = [vector if len(vector.shape) == 2 \
+                           else np.array([vector]).T for vector in vectors]
+                self.factors = np.concatenate(tuple(vectors), axis=1)
+            if lazyInit: # don't build data structures
+                self.n, self.k = self.factors.shape
+                self.orthoFac = None
+                self.toOrthoBlade = None
+                self.metricFactors = None
+                self.dataBuilt = False
+            else: 
+                if metricFactors is not None:
+                    self.metricFactors = np.dot(self.factors.T, self.factors)
+                else:
+                    self.metricFactors = np.copy(metricFactors) \
+                                         if copy else metricFactors
+                if W is None:
+                    self.toOrthoBlade = np.copy(toOrthoBlade) \
+                                        if copy else toOrthoBlade
+                else:
+                    _, self.toOrthoBlade = la.eigh(self.metricFactors)
+                if orthoFac is not None:
+                    self.orthoFac = np.dot(self.factors, eigenVects)
+                else:
+                    self.orthoFac = np.copy(orthoFac) if copy else orthoFac
+                self.dataBuilt = True
+
+
+
             
 
 
             
 
-        if lazyInit:
-            if vectors is None and factors is None:   # no input versor, init to empty
-                pass
 
 
             

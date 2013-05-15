@@ -4,6 +4,8 @@ import math
 import nose
 from blade import Blade
 import blade as bd
+from versor import Versor
+import versor as vs
 import numpy.random as rn
 
 # -------- #  TEST Blade
@@ -626,15 +628,10 @@ def testBladeLinearTransformScale():
 
 def testVersorInitNull():
     " Testing null versor "
-    B = Blade()
-    assert B.blade.shape == (1, 0)
-    assert np.allclose(B.s, 0)
-    assert B.k == 0
+    V = Versor()
+    assert V.factors is None
+    assert V.k == 0
 
-    B = Blade(s=0)
-    assert B.blade.shape == (1, 0)
-    assert np.allclose(B.s, 0)
-    assert B.k == 0
 
 
 # -------- #  Main
