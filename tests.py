@@ -630,9 +630,52 @@ def testVersorInitNull():
     " Testing null versor "
     V = Versor()
     assert V.factors is None
+    assert V.orthoFac is None
+    assert V.toOrthoBlade is None
+    assert V.metricFactors is None
+    assert V.n == 1
     assert V.k == 0
+    assert not V.dataBuilt
 
+def testVersorInitRowVec():
+    " Testing row vector input to versor "
+    v = np.array([1, 2, 3])
+    norm = la.norm(v)
+    V = Versor(vectors=[v])
+    assert np.allclose(V.factors, np.array([[1, 2, 3]]).T / norm), V.factors
+    assert V.factors.shape == (3, 1), V.factors.shape
+    assert np.allclose(np.dot(V.orthoFac.T, V.orthoFac), 1), V.orthoFac
+    assert np.allclose(np.dot(V.toOrthoBlade.T, V.toOrthoBlade), 1), V.toOrthoBlade
+    assert V.n == 3
+    assert V.k == 1
+    assert V.dataBuilt
 
+def testVersorInitColVec():
+    " Testing column vector input to versor "
+    v = np.array([[1], [2], [3]])
+    norm = la.norm(v)
+    V = Versor(vectors=[v])
+    assert np.allclose(V.factors, np.array([[1, 2, 3]]).T / norm), V.factors
+    assert np.allclose(np.dot(V.orthoFac.T, V.orthoFac), 1), V.orthoFac
+    assert np.allclose(np.dot(V.toOrthoBlade.T, V.toOrthoBlade), 1), V.toOrthoBlade
+    assert V.factors.shape == (3, 1), V.factors.shape
+    assert V.n == 3
+    assert V.k == 1
+    assert V.dataBuilt
+
+def testVersorInitRowColMix():
+    " Testing row vector and column vector inputs to versor "
+    v1 = np.array([1, 2, 3])
+    v2 = np.array([[1], [0], [3]])
+    V = Versor(vectors=[v1, v2])
+    assert V.factors.shape == (3, 2), V.factors.shape
+    assert np.allclose(np.dot(V.toOrthoBlade.T, V.toOrthoBlade), np.eye(2)), V.toOrthoBlade
+    print 'orthoFac.T * orthoFac: ', np.dot(V.orthoFac.T, V.orthoFac)
+    # uncomment soon! not yet working -- as it stands orthoFac will not be orthonormal in general
+    #assert np.allclose(np.dot(V.orthoFac.T, V.orthoFac), np.eye(2)), V.orthoFac
+    assert V.n == 3
+    assert V.k == 2
+    assert V.dataBuilt
 
 # -------- #  Main
 

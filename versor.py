@@ -13,7 +13,7 @@ from contracts import contract
 class Versor(object):
 
     def __init__(self, vectors=None, lazyInit=False, copy=True, factors=None,
-            orthoFac=None, W=None, metricFactors=None):
+            orthoFac=None, toOrthoBlade=None, metricFactors=None):
         """
             Creates a new versor.  This is a list of vectors (the factors)
             that are all multiplied together  using the geometric product.
@@ -62,39 +62,47 @@ class Versor(object):
         """
 
         if vectors is None and factors is None:   # no input versor, init to empty
-            self.n, self.k = (1, 0)
+            self.n, self.k = 1, 0
             self.factors = None
             self.orthoFac = None
             self.toOrthoBlade = None
             self.metricFactors = None
             self.dataBuilt = False
         else:
-            if factors is not None: # get main data structure in matrix form
-                self.factors = np.copy(factors) if copy else factors
-            else:
+            if factors is None: # get main data structure in matrix form
                 # check for row vector and transpose into column if necessary
                 vectors = [vector if len(vector.shape) == 2 \
                            else np.array([vector]).T for vector in vectors]
                 self.factors = np.concatenate(tuple(vectors), axis=1)
+                # euclidean normalize
+                norms = np.apply_along_axis(la.norm, 0, self.factors)
+                self.factors = self.factors / norms
+                print 'factors: ', self.factors
+            else:
+                self.factors = np.copy(factors) if copy else factors
+            self.n, self.k = self.factors.shape
             if lazyInit: # don't build data structures
-                self.n, self.k = self.factors.shape
                 self.orthoFac = None
                 self.toOrthoBlade = None
                 self.metricFactors = None
                 self.dataBuilt = False
             else: 
-                if metricFactors is not None:
+                # TODO: reduce here if k > n
+                if metricFactors is None:
                     self.metricFactors = np.dot(self.factors.T, self.factors)
+                    print 'metricFactor: ', self.metricFactors
                 else:
                     self.metricFactors = np.copy(metricFactors) \
                                          if copy else metricFactors
-                if W is None:
+                if toOrthoBlade is None:
+                    eigval, self.toOrthoBlade = la.eigh(self.metricFactors)
+                    print 'eigval: ', eigval
+                    print 'eigvects: ', self.toOrthoBlade
+                else:
                     self.toOrthoBlade = np.copy(toOrthoBlade) \
                                         if copy else toOrthoBlade
-                else:
-                    _, self.toOrthoBlade = la.eigh(self.metricFactors)
-                if orthoFac is not None:
-                    self.orthoFac = np.dot(self.factors, eigenVects)
+                if orthoFac is None:
+                    self.orthoFac = np.dot(self.factors, self.toOrthoBlade)
                 else:
                     self.orthoFac = np.copy(orthoFac) if copy else orthoFac
                 self.dataBuilt = True

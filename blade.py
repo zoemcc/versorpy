@@ -128,8 +128,8 @@ def outer(blade1, blade2, tol=1e-10):
 
 def inverse(blade):
     """ Calculates the inverse of k-blade blade  """
-#TODO: make inplace work here as an argument and doesn't mess things up
-#TODO: make this work for arbitrary metric
+# TODO: make inplace work here as an argument and doesn't mess things up
+# TODO: make this work for arbitrary metric
     if blade.s == 0:
         raise AttributeError, ('Not invertible, s=0', blade)
     else:
@@ -143,7 +143,7 @@ def inverse(blade):
 
 def inverseScaling(blade, inplace=False):
     """ Calculates the inverse of k-blade blade and returns just scaling """
-#TODO: currently broken WARNING
+# TODO: currently broken WARNING
     revBlade    = reverse(blade)
     denominator = inner(revBlade, blade)
     revBlade.s /= (denominator.s + np.finfo(np.double).eps)
@@ -355,6 +355,7 @@ def join(blade1, blade2, tol=1e-8):
     The scale is set to be 1 regardless of input scale since 
     the join has no absolute magnitude.
     """
+    # TODO: check orientation is right.
     if blade1.k == 0 and blade2.k == 0:
         return Blade(1, s=1)
     if blade1.k == 0:
@@ -384,6 +385,7 @@ def meet(blade1, blade2, tol=1e-8):
     The scale is set to be 1 regardless of input scale since 
     the meet has no absolute magnitude.
     """
+    # TODO: check orientation is right.
     ret = leftContract(leftContract(blade2, inverse(join(blade1, blade2, \
                        tol=tol))), blade1)
     ret.s = 1
